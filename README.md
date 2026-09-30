@@ -74,8 +74,13 @@ Connecter dans le panel : `http://localhost:3001`
 
 ## Sécurité
 
-- Aucune donnée n'est stockée par l'addon : chaque appel relaie l'API du panel **avec le JWT de l'utilisateur**, et c'est le panel qui applique les rôles.
-- Un utilisateur simple ne peut lire que **ses** comptes (`/api/panel/me/proxies/:id/activity`) ; toute route globale lui renvoie 403.
+- **Aucune donnée stockée** : chaque appel relaie l'API du panel **avec le JWT de l'utilisateur**. C'est le panel qui authentifie et applique les rôles ; l'addon ne fait jamais confiance au contenu du jeton.
+- **Cache** indexé par l'empreinte SHA-256 du jeton complet : un jeton falsifié ne peut pas lire les réponses mises en cache d'un autre utilisateur.
+- **Jeton uniquement dans l'en-tête `Authorization`** pour l'API (jamais en query string).
+- **Rôles** : statistiques globales réservées à ADMIN / SUPPORT (403 sinon) ; un utilisateur simple ne voit que ses propres comptes. Un SUPPORT ne voit ni les e-mails des propriétaires ni les IP bannies (réservés aux ADMIN), et ne peut pas les sonder par la recherche.
+- **Injections** : requêtes SQL paramétrées côté panel, tri par liste blanche, fuseau horaire validé, durée et pagination bornées.
+- **Pas de CORS** (l'interface est servie par l'addon lui-même), pas de `X-Powered-By`, `X-Content-Type-Options: nosniff`, conteneur exécuté en **non-root**.
+- Dépendances : `npm audit` signale des avis sur `@nestjs/platform-express` (multer), `@nestjs/serve-static` (path-to-regexp) et `react-router`, dont le correctif impose un passage majeur de NestJS. Ils ne sont **pas atteignables** ici : l'addon n'accepte aucun envoi de fichier, n'utilise aucune route dynamique côté serveur et n'emploie aucune redirection.
 
 ---
 
