@@ -5,12 +5,14 @@ import { cumulative, deltaPct, fmtBytes, fmtDay, fmtMs, fmtNum, fmtPct, fmtRate,
 import { AreaChart, BarChart, Donut, HBars, SegBar, colorAt } from '../../components/charts';
 import { Card, Empty, ErrorBox, Loading, Stat } from '../../components/ui';
 import type { PageProps } from './types';
+import { useLabels } from '../../i18n/labels';
 
 const LEVEL_ICON: Record<string, string> = { crit: '⛔', warn: '⚠️', info: 'ℹ️', ok: '✅' };
 
 export default function Overview({ days, nonce }: PageProps) {
   const { token, lang, tz } = useAddon();
   const t = useT();
+  const L = useLabels();
   const ov = useStat<any>(token, 'overview', { days, tz }, { nonce });
   const ins = useStat<any[]>(token, 'insights', { days, tz }, { nonce });
 
@@ -49,7 +51,7 @@ export default function Overview({ days, nonce }: PageProps) {
             {ins.data.map((i: any) => (
               <div key={i.id} className={`insight insight-${i.level}`}>
                 <span className="insight-ico">{LEVEL_ICON[i.level]}</span>
-                <span>{t(`insight.${i.key}`, i.params)}</span>
+                <span>{t(`insight.${i.key}`, i.key === 'targetErrors' ? { ...i.params, reason: L.reason(String(i.params.reason)) } : i.params)}</span>
               </div>
             ))}
           </div>

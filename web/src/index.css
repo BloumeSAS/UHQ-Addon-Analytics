@@ -197,3 +197,28 @@ select.input { width: auto; padding-right: 1.5rem; }
 .space-y-3 > * + * { margin-top: 0.75rem; }
 .space-y-4 > * + * { margin-top: 1rem; }
 .w-full { width: 100%; }
+
+/* ─── Navigation façon « Paramètres » du panel : menu latéral groupé + chapeau de section ── */
+.settings { display: flex; gap: 1.5rem; align-items: flex-start; }
+.snav { width: 16rem; flex-shrink: 0; position: sticky; top: 1rem; display: flex; flex-direction: column; gap: 1.25rem; max-height: calc(100vh - 2rem); overflow-y: auto; }
+.snav-group { display: flex; flex-direction: column; gap: 0.15rem; }
+.snav-group-title { padding: 0 0.65rem; margin-bottom: 0.2rem; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg2); opacity: 0.75; }
+.snav-item { display: flex; align-items: flex-start; gap: 0.6rem; width: 100%; padding: 0.5rem 0.65rem; border: none; border-radius: 0.45rem; background: none; color: var(--fg2); text-align: left; transition: background 0.15s, color 0.15s; }
+.snav-item:hover { background: var(--bg2); color: var(--fg); }
+.snav-item.active { background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); }
+.snav-item:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.snav-label { display: block; font-size: 0.85rem; line-height: 1.2; font-weight: 500; }
+.snav-item.active .snav-label { font-weight: 700; }
+.snav-desc { display: block; margin-top: 0.15rem; font-size: 0.68rem; line-height: 1.3; font-weight: 400; opacity: 0.75; }
+.settings-main { flex: 1; min-width: 0; }
+.section-head { display: flex; align-items: flex-start; gap: 0.75rem; padding-bottom: 0.25rem; }
+.section-icon { display: flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; flex-shrink: 0; border-radius: 0.5rem; background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); }
+.section-head h2 { font-size: 1.1rem; font-weight: 600; line-height: 1.2; }
+.section-head p { margin-top: 0.15rem; font-size: 0.82rem; color: var(--fg2); }
+@media (max-width: 860px) {
+  .settings { flex-direction: column; gap: 1rem; }
+  .snav { width: 100%; position: static; max-height: none; flex-direction: row; gap: 0.25rem; overflow-x: auto; padding-bottom: 0.25rem; border-bottom: 1px solid var(--border); }
+  .snav-group { flex-direction: row; gap: 0.25rem; }
+  .snav-group-title, .snav-desc { display: none; }
+  .snav-item { width: auto; white-space: nowrap; }
+}

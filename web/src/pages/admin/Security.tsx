@@ -5,10 +5,12 @@ import { fmtDateTime, fmtDay, fmtNum } from '../../lib/format';
 import { AreaChart, Donut, HBars, colorAt } from '../../components/charts';
 import { Badge, Card, Empty, ErrorBox, Loading, Stat } from '../../components/ui';
 import type { PageProps } from './types';
+import { useLabels } from '../../i18n/labels';
 
 export default function Security({ days, nonce }: PageProps) {
   const { token, lang } = useAddon();
   const t = useT();
+  const L = useLabels();
   const res = useStat<any>(token, 'security', { days }, { nonce });
 
   if (res.loading && !res.data) return <Loading />;
@@ -50,14 +52,14 @@ export default function Security({ days, nonce }: PageProps) {
           />
         </Card>
         <Card title={t('security.errorsShare')}>
-          <Donut fmt={n} size={120} slices={d.errors.slice(0, 5).map((e: any, i: number) => ({ label: e.reason, value: e.count, color: colorAt(i + 3) }))} />
+          <Donut fmt={n} size={120} slices={d.errors.slice(0, 5).map((e: any, i: number) => ({ label: L.reason(e.reason), value: e.count, color: colorAt(i + 3) }))} />
         </Card>
       </div>
 
       <div className="grid cols-2">
         <Card title={t('security.errorsByReason')}>
           {d.errors.length ? (
-            <HBars fmt={n} rows={d.errors.map((e: any) => ({ label: e.reason, value: e.count, sub: `${e.accounts} ${t('overview.accounts')} · ${e.hosts} ${t('security.hosts')}`, color: 'var(--red)' }))} />
+            <HBars fmt={n} rows={d.errors.map((e: any) => ({ label: L.reason(e.reason), value: e.count, sub: `${e.accounts} ${t('overview.accounts')} · ${e.hosts} ${t('security.hosts')}`, color: 'var(--red)' }))} />
           ) : <Empty>{t('security.noErrors')}</Empty>}
         </Card>
         <Card title={t('security.errorHosts')}>
@@ -82,8 +84,8 @@ export default function Security({ days, nonce }: PageProps) {
                 {d.recentBans.map((b: any) => (
                   <tr key={b.ip}>
                     <td className="mono">{b.ip}</td>
-                    <td className="text-xs">{b.reason ?? '—'}</td>
-                    <td>{b.createdBy === 'auto' ? <Badge tone="info">auto</Badge> : <span className="text-xs">{b.createdBy ?? '—'}</span>}</td>
+                    <td className="text-xs">{L.banReason(b.reason)}</td>
+                    <td>{b.createdBy === 'auto' ? <Badge tone="info">{t('security.auto')}</Badge> : <span className="text-xs">{b.createdBy ?? '—'}</span>}</td>
                     <td className="text-xs">{fmtDateTime(b.createdAt, lang)}</td>
                     <td className="text-xs">{b.expiresAt ? fmtDateTime(b.expiresAt, lang) : <Badge tone="bad">{t('security.permanent')}</Badge>}</td>
                   </tr>
@@ -99,7 +101,7 @@ export default function Security({ days, nonce }: PageProps) {
           {d.audit.actions.length ? <HBars fmt={n} rows={d.audit.actions.map((a: any, i: number) => ({ label: <span className="mono">{a.action}</span>, value: a.count, color: colorAt(i) }))} /> : <Empty />}
         </Card>
         <Card title={t('security.auditUsers')}>
-          {d.audit.users.length ? <HBars fmt={n} rows={d.audit.users.map((a: any, i: number) => ({ label: a.email, value: a.count, color: colorAt(i + 2) }))} /> : <Empty />}
+          {d.audit.users.length ? <HBars fmt={n} rows={d.audit.users.map((a: any, i: number) => ({ label: L.actor(a.email), value: a.count, color: colorAt(i + 2) }))} /> : <Empty />}
         </Card>
       </div>
 

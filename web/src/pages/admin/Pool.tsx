@@ -5,12 +5,14 @@ import { fmtMs, fmtNum, fmtPct } from '../../lib/format';
 import { BarChart, Donut, HBars, SegBar, colorAt } from '../../components/charts';
 import { Badge, Card, Empty, ErrorBox, Loading, Stat } from '../../components/ui';
 import type { PageProps } from './types';
+import { useLabels } from '../../i18n/labels';
 
 const pctOf = (a: number, b: number) => (b > 0 ? (a / b) * 100 : 0);
 
 function ProxyTable({ rows }: { rows: any[] }) {
   const { lang } = useAddon();
   const t = useT();
+  const L = useLabels();
   if (!rows.length) return <div className="empty text-xs">{t('pool.notEnough')}</div>;
   return (
     <div className="table-wrap">
@@ -19,8 +21,8 @@ function ProxyTable({ rows }: { rows: any[] }) {
         <tbody>
           {rows.map((r, i) => (
             <tr key={i}>
-              <td className="mono">{r.protocol}://{r.ip}:{r.port} <span className="text-muted">{r.country ?? ''}</span></td>
-              <td>{r.provider ?? '—'}</td>
+              <td className="mono">{r.protocol}://{r.ip}:{r.port} <span className="text-muted">{r.country ? L.country(r.country) : ''}</span></td>
+              <td>{L.provider(r.provider)}</td>
               <td className="num">{fmtPct(r.successPct, lang, 1)}</td>
               <td className="num">{fmtMs(r.latencyMs, lang)}</td>
               <td className="num">{fmtNum(r.successCount + r.failureCount, lang)}</td>
@@ -36,6 +38,7 @@ function ProxyTable({ rows }: { rows: any[] }) {
 export default function Pool({ nonce }: PageProps) {
   const { token, lang } = useAddon();
   const t = useT();
+  const L = useLabels();
   const res = useStat<any>(token, 'pool', {}, { nonce });
 
   if (res.loading && !res.data) return <Loading />;
@@ -104,8 +107,8 @@ export default function Pool({ nonce }: PageProps) {
             <thead><tr><th>{t('pool.provider')}</th><th className="num">{t('overview.total')}</th><th className="num">{t('pool.working')}</th><th className="num">{t('pool.yield')}</th><th className="num">{t('pool.blacklisted')}</th><th className="num">{t('overview.latency')}</th><th className="num">{t('pool.successRate')}</th></tr></thead>
             <tbody>
               {d.byProvider.map((p: any) => (
-                <tr key={p.provider}>
-                  <td className="text-bold">{p.provider}</td>
+                <tr key={p.provider ?? 'none'}>
+                  <td className="text-bold">{L.provider(p.provider)}</td>
                   <td className="num">{n(p.total)}</td>
                   <td className="num">{n(p.working)}</td>
                   <td className="num"><Badge tone={pctOf(p.working, p.total) >= 10 ? 'good' : pctOf(p.working, p.total) >= 2 ? 'warn' : 'bad'}>{fmtPct(pctOf(p.working, p.total), lang, 1)}</Badge></td>
@@ -123,26 +126,26 @@ export default function Pool({ nonce }: PageProps) {
         <Card title={t('pool.providerYield')}>
           <HBars
             fmt={(n) => fmtPct(n, lang, 1)}
-            rows={d.byProvider.filter((p: any) => p.total >= 10).map((p: any, i: number) => ({ label: p.provider, value: pctOf(p.working, p.total), sub: `${n(p.working)} / ${n(p.total)}`, color: colorAt(i) }))}
+            rows={d.byProvider.filter((p: any) => p.total >= 10).map((p: any, i: number) => ({ label: L.provider(p.provider), value: pctOf(p.working, p.total), sub: `${n(p.working)} / ${n(p.total)}`, color: colorAt(i) }))}
           />
         </Card>
         <Card title={t('pool.providerLatency')}>
           <HBars
             fmt={(v) => fmtMs(v, lang)}
-            rows={d.byProvider.filter((p: any) => p.avgLatencyMs).map((p: any, i: number) => ({ label: p.provider, value: p.avgLatencyMs, color: colorAt(i + 1) }))}
+            rows={d.byProvider.filter((p: any) => p.avgLatencyMs).map((p: any, i: number) => ({ label: L.provider(p.provider), value: p.avgLatencyMs, color: colorAt(i + 1) }))}
           />
         </Card>
         <Card title={t('pool.providerSuccess')}>
           <HBars
             fmt={(v) => fmtPct(v, lang, 1)}
-            rows={d.byProvider.filter((p: any) => p.successes + p.failures >= 20).map((p: any, i: number) => ({ label: p.provider, value: pctOf(p.successes, p.successes + p.failures), sub: `${n(p.successes + p.failures)} ${t('pool.tests')}`, color: colorAt(i + 2) }))}
+            rows={d.byProvider.filter((p: any) => p.successes + p.failures >= 20).map((p: any, i: number) => ({ label: L.provider(p.provider), value: pctOf(p.successes, p.successes + p.failures), sub: `${n(p.successes + p.failures)} ${t('pool.tests')}`, color: colorAt(i + 2) }))}
           />
         </Card>
         <Card title={t('pool.countryShare')}>
           <Donut
             fmt={n}
             slices={[
-              ...d.byCountry.filter((c: any) => c.working > 0).slice(0, 7).map((c: any, i: number) => ({ label: c.country, value: c.working, color: colorAt(i) })),
+              ...d.byCountry.filter((c: any) => c.working > 0).slice(0, 7).map((c: any, i: number) => ({ label: L.country(c.country), value: c.working, color: colorAt(i) })),
               { label: t('pool.others'), value: Math.max(0, d.byCountry.filter((c: any) => c.working > 0).slice(7).reduce((x: number, c: any) => x + c.working, 0)), color: '#64748b' },
             ]}
           />
@@ -160,7 +163,7 @@ export default function Pool({ nonce }: PageProps) {
           </div>
         </Card>
         <Card title={t('pool.byCountry')}>
-          <HBars fmt={n} rows={d.byCountry.filter((c: any) => c.working > 0).slice(0, 15).map((c: any, i: number) => ({ label: c.country, value: c.working, sub: `${fmtMs(c.avgLatencyMs, lang)} · ${n(c.total)} ${t('overview.total').toLowerCase()}`, color: colorAt(i) }))} />
+          <HBars fmt={n} rows={d.byCountry.filter((c: any) => c.working > 0).slice(0, 15).map((c: any, i: number) => ({ label: L.country(c.country), value: c.working, sub: `${fmtMs(c.avgLatencyMs, lang)} · ${n(c.total)} ${t('overview.total').toLowerCase()}`, color: colorAt(i) }))} />
         </Card>
       </div>
 

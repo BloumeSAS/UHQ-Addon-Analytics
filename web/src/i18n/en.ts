@@ -364,4 +364,29 @@ export const en: Record<string, string> = {
   'security.manual': 'Manual',
   'security.temporary': 'Temporary',
   'security.errorsShare': 'Target-side error types',
+
+  // ── Panel value labels ──────────────────────────────────────────────────
+  'label.unknownProvider': 'Unknown provider',
+  'label.unknownCountry': 'Unknown country',
+  'label.system': 'System',
+  'reason.forbidden': '403 Forbidden',
+  'reason.captcha': 'Captcha detected',
+  'reason.geo': 'Geo-blocked',
+  'banreason.authFail': 'Auto-ban: {n}+ proxy authentication failures in {s} s',
+  'banreason.vpn': 'Auto-ban: VPN detected (anti-VPN enabled on category "{pool}")',
+
+  // ── Navigation (groups + section descriptions) ──────────────────────────
+  'admin.subtitle': 'Detailed panel statistics, from account activity to infrastructure health.',
+  'group.overview': 'Summary',
+  'group.usage': 'Usage',
+  'group.infra': 'Infrastructure',
+  'group.security': 'Protection',
+  'tab.overviewDesc': 'Insights, key indicators and trends across the whole panel.',
+  'tab.activityDesc': 'When your accounts are used: peak hours, busy days, quiet slots.',
+  'tab.accountsDesc': 'Usage, activity and quota of every proxy account.',
+  'tab.categoriesDesc': 'Category comparison: accounts, traffic, upstream proxies.',
+  'tab.poolDesc': 'Health, providers, countries and latency of upstream proxies.',
+  'tab.checkerDesc': 'Verification cycles and pool health over time.',
+  'tab.scraperDesc': 'Yield and state of every collection source.',
+  'tab.securityDesc': 'Bans, target-side errors, sessions and admin actions.',
 };

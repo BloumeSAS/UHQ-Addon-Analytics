@@ -364,4 +364,29 @@ export const fr: Record<string, string> = {
   'security.manual': 'Manuels',
   'security.temporary': 'Temporaires',
   'security.errorsShare': 'Types d’erreurs côté cible',
+
+  // ── Libellés de valeurs du panel ────────────────────────────────────────
+  'label.unknownProvider': 'Fournisseur inconnu',
+  'label.unknownCountry': 'Pays inconnu',
+  'label.system': 'Système',
+  'reason.forbidden': '403 Interdit',
+  'reason.captcha': 'Captcha détecté',
+  'reason.geo': 'Blocage géographique',
+  'banreason.authFail': 'Bannissement auto : {n}+ échecs d’authentification proxy en {s} s',
+  'banreason.vpn': 'Bannissement auto : VPN détecté (anti-VPN activé sur la catégorie « {pool} »)',
+
+  // ── Navigation (groupes + descriptions de sections) ─────────────────────
+  'admin.subtitle': "Statistiques détaillées du panel, de l'activité des comptes à la santé de l'infrastructure.",
+  'group.overview': 'Synthèse',
+  'group.usage': 'Utilisation',
+  'group.infra': 'Infrastructure',
+  'group.security': 'Protection',
+  'tab.overviewDesc': "Constats, indicateurs clés et tendances de l'ensemble du panel.",
+  'tab.activityDesc': 'Quand vos comptes sont utilisés : heures de pointe, jours actifs, créneaux calmes.',
+  'tab.accountsDesc': 'Consommation, activité et quota de chaque compte proxy.',
+  'tab.categoriesDesc': 'Comparaison des catégories : comptes, trafic, proxies amont.',
+  'tab.poolDesc': 'Santé, fournisseurs, pays et latence des proxies amont.',
+  'tab.checkerDesc': 'Cycles de vérification et évolution de la santé du pool.',
+  'tab.scraperDesc': 'Rendement et état de chaque source de collecte.',
+  'tab.securityDesc': 'Bannissements, erreurs côté cible, sessions et actions admin.',
 };

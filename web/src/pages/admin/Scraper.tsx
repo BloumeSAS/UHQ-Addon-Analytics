@@ -5,12 +5,14 @@ import { fmtDateTime, fmtDuration, fmtMs, fmtNum, fmtPct, timeAgo } from '../../
 import { AreaChart, BarChart, Donut, HBars, colorAt } from '../../components/charts';
 import { Badge, Card, Empty, ErrorBox, Loading, Stat } from '../../components/ui';
 import type { PageProps } from './types';
+import { useLabels } from '../../i18n/labels';
 
 const pctOf = (a: number, b: number) => (b > 0 ? (a / b) * 100 : 0);
 
 export default function Scraper({ days, nonce }: PageProps) {
   const { token, lang } = useAddon();
   const t = useT();
+  const L = useLabels();
   const res = useStat<any>(token, 'scraper', { days }, { nonce });
 
   if (res.loading && !res.data) return <Loading />;
@@ -146,7 +148,7 @@ export default function Scraper({ days, nonce }: PageProps) {
 
       {d.otherProviders.length > 0 && (
         <Card title={t('scraper.otherProviders')}>
-          <HBars fmt={n} rows={d.otherProviders.map((p: any, i: number) => ({ label: p.provider, value: p.working, sub: `${n(p.total)} ${t('overview.total').toLowerCase()}`, color: colorAt(i + 3) }))} />
+          <HBars fmt={n} rows={d.otherProviders.map((p: any, i: number) => ({ label: L.provider(p.provider), value: p.working, sub: `${n(p.total)} ${t('overview.total').toLowerCase()}`, color: colorAt(i + 3) }))} />
         </Card>
       )}
 

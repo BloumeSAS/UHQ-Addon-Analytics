@@ -1,5 +1,6 @@
 import { HttpException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
+import { Lang, langOf, msg } from './lang';
 
 export interface JwtPayload {
   sub: string;
@@ -26,10 +27,11 @@ export function extractToken(req: Request): string {
 /** Décode le JWT de la requête (sans en vérifier la signature : c'est le panel qui l'authentifie à chaque appel). */
 export function authenticate(req: Request): { token: string; payload: JwtPayload } {
   const token = extractToken(req);
-  if (!token) throw new UnauthorizedException('Token manquant');
+  const lang = langOf(req);
+  if (!token) throw new UnauthorizedException(msg(lang, 'tokenMissing'));
   const payload = decodeJwt(token);
-  if (!payload?.sub) throw new UnauthorizedException('Token invalide');
-  if (payload.exp && Date.now() / 1000 > payload.exp) throw new UnauthorizedException('Token expiré');
+  if (!payload?.sub) throw new UnauthorizedException(msg(lang, 'tokenInvalid'));
+  if (payload.exp && Date.now() / 1000 > payload.exp) throw new UnauthorizedException(msg(lang, 'tokenExpired'));
   return { token, payload };
 }
 
@@ -59,19 +61,25 @@ export class PanelClient {
     return (Number.isFinite(s) && s >= 0 ? s : 20) * 1000;
   }
 
-  async get<T = any>(path: string, token: string, query: Record<string, unknown> = {}, userKey = '', fresh = false): Promise<T> {
+  async get<T = any>(
+    path: string,
+    token: string,
+    query: Record<string, unknown> = {},
+    opts: { userKey?: string; fresh?: boolean; lang?: Lang } = {},
+  ): Promise<T> {
+    const { userKey = '', fresh = false, lang = 'fr' } = opts;
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(query)) {
       if (v !== undefined && v !== null && String(v) !== '') qs.set(k, String(v));
     }
     const url = `${this.panelUrl}${path}${qs.toString() ? `?${qs}` : ''}`;
-    const key = `${userKey}|${url}`;
+    const key = `${userKey}|${lang}|${url}`;
     const now = Date.now();
 
     const hit = this.cache.get(key);
     if (!fresh && hit && now - hit.at < this.ttlMs) return (await (hit.pending ?? hit.value)) as T;
 
-    const pending = this.fetchJson<T>(url, token);
+    const pending = this.fetchJson<T>(url, token, lang);
     this.cache.set(key, { at: now, pending });
     try {
       const value = await pending;
@@ -84,16 +92,17 @@ export class PanelClient {
     }
   }
 
-  private async fetchJson<T>(url: string, token: string): Promise<T> {
+  private async fetchJson<T>(url: string, token: string, lang: Lang): Promise<T> {
     let res: Response;
     try {
       res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        // x-lang : le panel traduit ses propres messages d'erreur dans la langue de l'utilisateur.
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json', 'x-lang': lang },
         signal: AbortSignal.timeout(30_000),
       });
     } catch (e: any) {
       this.logger.warn(`Panel injoignable (${url}) : ${e?.message ?? e}`);
-      throw new HttpException(`Panel injoignable : ${e?.message ?? e}`, 502);
+      throw new HttpException(`${msg(lang, 'panelDown')} : ${e?.message ?? e}`, 502);
     }
     const body: any = await res.json().catch(() => ({}));
     if (!res.ok) {

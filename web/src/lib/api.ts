@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAddon } from '../context';
 
 /**
  * Client HTTP de l'addon. Les URLs sont préfixées par BASE_URL ("/" en
  * déploiement classique, "/addon-proxy/analytics/" une fois embarqué dans le
  * panel) : jamais de chemin absolu "/api/..." qui ne passerait pas par le proxy.
  */
-export function createApi(token: string) {
+export function createApi(token: string, lang: 'fr' | 'en' = 'fr') {
   const base = import.meta.env.BASE_URL;
 
   async function request<T>(path: string, params?: Record<string, unknown>, signal?: AbortSignal): Promise<T> {
@@ -14,7 +15,7 @@ export function createApi(token: string) {
       if (v !== undefined && v !== null && String(v) !== '') qs.set(k, String(v));
     }
     const res = await fetch(`${base}api/${path}${qs.toString() ? `?${qs}` : ''}`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json', 'x-lang': lang },
       signal,
     });
     const data = await res.json().catch(() => ({}));
@@ -42,6 +43,7 @@ export function useStat<T = any>(
   params: Record<string, unknown> = {},
   opts: { enabled?: boolean; raw?: boolean; nonce?: number } = {},
 ): FetchState<T> {
+  const { lang } = useAddon();
   const enabled = opts.enabled ?? true;
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(enabled);
@@ -64,7 +66,7 @@ export function useStat<T = any>(
     const id = ++seq.current;
     setLoading(true);
     setError('');
-    createApi(token)
+    createApi(token, lang)
       .get<any>(`stats/${path}`, fresh.current ? { ...params, fresh: 1 } : params, ctrl.signal)
       .then((r) => {
         if (id !== seq.current) return;
@@ -80,7 +82,7 @@ export function useStat<T = any>(
       });
     return () => ctrl.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, key, enabled, tick, nonce]);
+  }, [token, key, enabled, tick, nonce, lang]);
 
   const reload = useCallback(() => {
     fresh.current = true;

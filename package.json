@@ -1,6 +1,6 @@
 {
   "name": "uhq-addon-analytics",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Addon Analytics pour UHQ Panel OS — NestJS + React",
   "private": true,
   "scripts": {

@@ -2,6 +2,7 @@ import { Controller, ForbiddenException, Get, NotFoundException, Param, Query, R
 import { Request } from 'express';
 import { InsightsService } from './insights.service';
 import { PanelClient, authenticate } from './panel-client.service';
+import { langOf, msg } from './lang';
 
 /** Sections exposées par le panel sous /api/panel/analytics/<section>. */
 const SECTIONS = new Set(['overview', 'accounts', 'activity', 'categories', 'pool', 'checker', 'scraper', 'security']);
@@ -39,9 +40,9 @@ export class StatsController {
   @Get('insights')
   async getInsights(@Req() req: Request, @Query('days') days = '30', @Query('tz') tz = 'UTC') {
     const { token, payload } = authenticate(req);
-    if (!isStaff(payload.role)) throw new ForbiddenException('Accès refusé');
+    if (!isStaff(payload.role)) throw new ForbiddenException(msg(langOf(req), 'forbidden'));
     const d = Math.max(1, Math.min(365, parseInt(days, 10) || 30));
-    return { status: 'success', data: await this.insights.build(token, payload.sub, d, tz) };
+    return { status: 'success', data: await this.insights.build(token, payload.sub, d, tz, langOf(req)) };
   }
 
   /**
@@ -52,15 +53,16 @@ export class StatsController {
   @Get('me')
   async mine(@Req() req: Request, @Query('days') days = '30', @Query('tz') tz = 'UTC') {
     const { token, payload } = authenticate(req);
-    const list: any = await this.panel.get('/api/panel/me/proxies', token, {}, payload.sub);
+    const lang = langOf(req);
+    const list: any = await this.panel.get('/api/panel/me/proxies', token, {}, { userKey: payload.sub, lang });
     const accounts: any[] = (list?.data ?? []).slice(0, 12);
     const period = Number(days) <= 7 ? 'week' : Number(days) <= 30 ? 'month' : Number(days) <= 365 ? 'year' : 'all';
 
     const detailed = await Promise.all(
       accounts.map(async (a) => {
         const [activity, usage] = await Promise.allSettled([
-          this.panel.get<any>(`/api/panel/me/proxies/${a.id}/activity`, token, { days, tz }, payload.sub),
-          this.panel.get<any>(`/api/panel/me/proxies/${a.id}/usage`, token, { period }, payload.sub),
+          this.panel.get<any>(`/api/panel/me/proxies/${a.id}/activity`, token, { days, tz }, { userKey: payload.sub, lang }),
+          this.panel.get<any>(`/api/panel/me/proxies/${a.id}/usage`, token, { period }, { userKey: payload.sub, lang }),
         ]);
         return {
           id: a.id,
@@ -85,16 +87,26 @@ export class StatsController {
   @Get('accounts/:id')
   async account(@Req() req: Request, @Param('id') id: string) {
     const { token, payload } = authenticate(req);
-    if (!isStaff(payload.role)) throw new ForbiddenException('Accès refusé');
-    return this.panel.get(`/api/panel/analytics/accounts/${encodeURIComponent(id)}`, token, this.forward(req), payload.sub, this.isFresh(req));
+    const lang = langOf(req);
+    if (!isStaff(payload.role)) throw new ForbiddenException(msg(lang, 'forbidden'));
+    return this.panel.get(`/api/panel/analytics/accounts/${encodeURIComponent(id)}`, token, this.forward(req), {
+      userKey: payload.sub,
+      fresh: this.isFresh(req),
+      lang,
+    });
   }
 
   /** GET /api/stats/:section — relais d'un agrégat global du panel (staff). */
   @Get(':section')
   async section(@Req() req: Request, @Param('section') section: string) {
-    if (!SECTIONS.has(section)) throw new NotFoundException('Section inconnue');
+    const lang = langOf(req);
+    if (!SECTIONS.has(section)) throw new NotFoundException(msg(lang, 'unknownSection'));
     const { token, payload } = authenticate(req);
-    if (!isStaff(payload.role)) throw new ForbiddenException('Accès refusé');
-    return this.panel.get(`/api/panel/analytics/${section}`, token, this.forward(req), payload.sub, this.isFresh(req));
+    if (!isStaff(payload.role)) throw new ForbiddenException(msg(lang, 'forbidden'));
+    return this.panel.get(`/api/panel/analytics/${section}`, token, this.forward(req), {
+      userKey: payload.sub,
+      fresh: this.isFresh(req),
+      lang,
+    });
   }
 }

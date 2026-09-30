@@ -76,6 +76,11 @@ export function AddonProvider({ children }: { children: ReactNode }) {
     applyPanelTheme(ctx.theme);
   }, [ctx.theme]);
 
+  // Langue du document (lecteurs d'écran, césure, guillemets) : suit la langue choisie dans le panel.
+  useEffect(() => {
+    document.documentElement.lang = ctx.lang;
+  }, [ctx.lang]);
+
   return <AddonContext.Provider value={ctx}>{children}</AddonContext.Provider>;
 }
 

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PanelClient } from './panel-client.service';
+import { Lang } from './lang';
 
 export type InsightLevel = 'crit' | 'warn' | 'info' | 'ok';
 
@@ -22,11 +23,11 @@ const RANK: Record<InsightLevel, number> = { crit: 0, warn: 1, info: 2, ok: 3 };
 export class InsightsService {
   constructor(private readonly panel: PanelClient) {}
 
-  async build(token: string, userKey: string, days: number, tz: string): Promise<Insight[]> {
+  async build(token: string, userKey: string, days: number, tz: string, lang: Lang = 'fr'): Promise<Insight[]> {
     const base = '/api/panel/analytics';
     const q = { days, tz };
     const get = (p: string, query: Record<string, unknown> = q) =>
-      this.panel.get<any>(`${base}/${p}`, token, query, userKey).then((r) => r?.data);
+      this.panel.get<any>(`${base}/${p}`, token, query, { userKey, lang }).then((r) => r?.data);
 
     const [ov, act, cat, pool, chk, scr, sec] = (
       await Promise.allSettled([

@@ -7,6 +7,7 @@ import { ActivityView } from '../../components/ActivityView';
 import { AreaChart, BarChart, Donut, Gauge, HBars } from '../../components/charts';
 import { Badge, Card, Empty, ErrorBox, Loading, Pagination, SortTh, Stat, useDebounced } from '../../components/ui';
 import type { PageProps } from './types';
+import { useLabels } from '../../i18n/labels';
 
 const PAGE = 25;
 
@@ -46,7 +47,7 @@ export default function Accounts({ days, nonce }: PageProps) {
     try {
       const rows: any[] = [];
       for (let off = 0; off < 5000; off += 500) {
-        const r: any = await createApi(token).get('stats/accounts', { ...params, limit: 500, offset: off });
+        const r: any = await createApi(token, lang).get('stats/accounts', { ...params, limit: 500, offset: off });
         rows.push(...(r.data ?? []));
         if (rows.length >= r.total || !(r.data ?? []).length) break;
       }
@@ -168,6 +169,7 @@ export default function Accounts({ days, nonce }: PageProps) {
 function AccountDrawer({ id, days, nonce, onClose }: { id: string; days: number; nonce: number; onClose: () => void }) {
   const { token, lang, tz } = useAddon();
   const t = useT();
+  const L = useLabels();
   const res = useStat<any>(token, `accounts/${id}`, { days, tz }, { nonce });
 
   useEffect(() => {
@@ -234,7 +236,7 @@ function AccountDrawer({ id, days, nonce, onClose }: { id: string; days: number;
               </Card>
               <Card title={t('accounts.errors')}>
                 {d.errors.length ? (
-                  <HBars fmt={(n) => fmtNum(n, lang)} rows={d.errors.map((e: any) => ({ label: e.reason, value: e.count, sub: `${e.hosts} ${t('security.hosts')}`, color: 'var(--red)' }))} />
+                  <HBars fmt={(n) => fmtNum(n, lang)} rows={d.errors.map((e: any) => ({ label: L.reason(e.reason), value: e.count, sub: `${e.hosts} ${t('security.hosts')}`, color: 'var(--red)' }))} />
                 ) : <div className="empty text-xs">{t('accounts.noErrors')}</div>}
               </Card>
             </div>
