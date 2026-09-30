@@ -1,0 +1,55 @@
+{
+  "name": "Analytics",
+  "version": "1.0.0",
+  "description": "Analyse complète du panel : comptes, catégories, pool, checker, scraper, sécurité et heures/jours d'activité.",
+  "icon": "BarChart3",
+  "author": {
+    "name": "Bloume SAS",
+    "email": "contact@bloume.fr",
+    "url": "https://bloume.fr"
+  },
+  "homepage": "https://github.com/BloumeSAS/UHQ-Addon-Analytics",
+  "repository": "https://github.com/BloumeSAS/UHQ-Addon-Analytics",
+  "license": "MIT",
+  "panelVersion": "2.4.72",
+  "translations": {
+    "fr": {
+      "addon.analytics.nav": "Mon activité",
+      "addon.analytics.navAdmin": "Analyse",
+      "addon.analytics.widget": "Activité du jour"
+    },
+    "en": {
+      "addon.analytics.nav": "My activity",
+      "addon.analytics.navAdmin": "Analytics",
+      "addon.analytics.widget": "Today's activity"
+    }
+  },
+  "pages": [
+    {
+      "path": "/",
+      "label": "addon.analytics.nav",
+      "icon": "Activity",
+      "showInNavbar": true,
+      "adminOnly": false
+    },
+    {
+      "path": "/admin",
+      "label": "addon.analytics.navAdmin",
+      "icon": "BarChart3",
+      "showInNavbar": true,
+      "adminOnly": true
+    }
+  ],
+  "widgets": [
+    {
+      "zone": "/",
+      "path": "/widget/dashboard",
+      "height": 100,
+      "label": "addon.analytics.widget"
+    }
+  ],
+  "auth": {
+    "passJwt": true,
+    "passUserInfo": true
+  }
+}
