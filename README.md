@@ -7,11 +7,13 @@
 
 ## Fonctionnalités
 
+> **Plus de 70 graphiques et une cinquantaine d'indicateurs** : courbes (comparaison avec la période précédente, cumul, chronologie heure par heure), histogrammes, anneaux, classements, cartes de chaleur et barres de santé.
+
 ### Panneau d'analyse (admin / support) — 8 sections
 | Section | Ce que vous y trouvez |
 |---|---|
-| **Vue d'ensemble** | Constats & alertes automatiques, trafic (avec variation vs période précédente), requêtes, comptes actifs, débit en direct, quotas, tendance journalière, classements (comptes, domaines, utilisateurs) |
-| **Activité** | **Heure de pointe**, **jour le plus actif**, **fenêtre la plus calme** (idéale pour une maintenance), répartition par heure et par jour de semaine, **carte de chaleur jour × heure**, créneaux les plus chargés — global, par catégorie ou par compte |
+| **Vue d'ensemble** | Constats & alertes automatiques, 11 indicateurs, trafic par jour, **comparaison avec la période précédente**, trafic cumulé, **chronologie heure par heure (72 h)**, envoyé/reçu, comptes par volume consommé et par taux de quota, mouvement des comptes actifs, créations de comptes, concentration par domaine, **plus fortes hausses / baisses**, classements (comptes, domaines, utilisateurs) |
+| **Activité** | **Heure de pointe**, **jour le plus actif**, **fenêtre la plus calme** (idéale pour une maintenance), répartition par heure et par jour de semaine, **carte de chaleur jour × heure**, créneaux les plus chargés, chronologie heure par heure (14 j), comptes actifs par heure, matin / après-midi / soirée / nuit, semaine vs week-end — global, par catégorie ou par compte |
 | **Comptes** | Tableau triable/filtrable (recherche, état, catégorie) : trafic, requêtes, domaines, jours actifs, dernière activité, heure de pointe, quota. Détail par compte (tendance, heures/jours, top domaines, erreurs), **export CSV** |
 | **Catégories** | Par catégorie : comptes, trafic, part du trafic, proxies amont, latence, heure de pointe, multiplicateur de consommation, quota consommé |
 | **Pool de proxies** | Santé (fonctionnels / morts / blacklistés / archivés), rendement par fournisseur, protocoles, pays, répartition des latences, ancienneté des tests, meilleurs et pires proxies, proxies en cours d'utilisation |

@@ -130,3 +130,23 @@ export function downloadCsv(filename: string, rows: unknown[][]): void {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+/** Décale un jour calendaire "AAAA-MM-JJ" de `delta` jours (arithmétique UTC : pas de dérive d'heure d'été). */
+export function shiftDay(day: string, delta: number): string {
+  const [y, m, d] = day.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + delta));
+  return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, '0')}-${String(t.getUTCDate()).padStart(2, '0')}`;
+}
+
+/** "mer. 14:00" — instant (ISO) affiché dans le fuseau du navigateur. */
+export function fmtStamp(iso: string | Date, lang: Lang): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString(lang, { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+/** Somme cumulée d'une série. */
+export function cumulative(values: number[]): number[] {
+  let acc = 0;
+  return values.map((v) => (acc += v || 0));
+}

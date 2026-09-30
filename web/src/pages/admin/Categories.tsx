@@ -2,7 +2,7 @@ import { useAddon } from '../../context';
 import { useT } from '../../i18n';
 import { useStat } from '../../lib/api';
 import { fmtBytes, fmtDay, fmtHour, fmtMs, fmtNum, gbUnit } from '../../lib/format';
-import { AreaChart, Donut, Gauge, colorAt } from '../../components/charts';
+import { AreaChart, Donut, Gauge, HBars, SegBar, colorAt } from '../../components/charts';
 import { Badge, Card, Empty, ErrorBox, Loading } from '../../components/ui';
 import type { PageProps } from './types';
 
@@ -46,6 +46,39 @@ export default function Categories({ days, nonce }: PageProps) {
           ) : <Empty />}
         </Card>
       </div>
+
+      <div className="grid cols-2">
+        <Card title={t('categories.accountsBy')}>
+          <HBars fmt={(n) => fmtNum(n, lang)} rows={cats.map((c, i) => ({ label: name(c), value: c.accounts.total, sub: `${c.accounts.active} ${t('categories.active')}`, color: color(c, i) }))} />
+        </Card>
+        <Card title={t('categories.requestsBy')}>
+          <HBars fmt={(n) => fmtNum(n, lang)} rows={cats.map((c, i) => ({ label: name(c), value: c.traffic.requests, color: color(c, i) }))} />
+        </Card>
+        <Card title={t('categories.bytesPerAccount')}>
+          <HBars fmt={(n) => fmtBytes(n, lang)} rows={cats.map((c, i) => ({ label: name(c), value: c.accounts.active ? c.traffic.total / c.accounts.active : 0, color: color(c, i) }))} />
+        </Card>
+        <Card title={t('categories.latencyBy')}>
+          <HBars fmt={(n) => fmtMs(n, lang)} rows={cats.filter((c) => c.upstream.avgLatencyMs).map((c, i) => ({ label: name(c), value: c.upstream.avgLatencyMs, sub: `${c.upstream.working}/${c.upstream.total}`, color: color(c, i) }))} />
+        </Card>
+      </div>
+
+      <Card title={t('categories.upstreamHealth')}>
+        <div className="space-y-3">
+          {cats.filter((c) => c.upstream.total > 0).map((c, i) => (
+            <div key={c.key}>
+              <div className="text-xs mb-2 text-bold">{name(c)}</div>
+              <SegBar
+                fmt={(n) => fmtNum(n, lang)}
+                slices={[
+                  { label: t('pool.working'), value: c.upstream.working, color: 'var(--green)' },
+                  { label: t('pool.dead'), value: c.upstream.dead, color: 'var(--red)' },
+                  { label: t('pool.blacklisted'), value: c.upstream.blacklisted, color: '#f59e0b' },
+                ]}
+              />
+            </div>
+          ))}
+        </div>
+      </Card>
 
       <div className="grid cols-2">
         {cats.map((c, i) => (

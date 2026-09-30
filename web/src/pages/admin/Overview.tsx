@@ -1,8 +1,8 @@
 import { useAddon } from '../../context';
 import { useT } from '../../i18n';
 import { useStat } from '../../lib/api';
-import { deltaPct, fmtBytes, fmtDay, fmtMs, fmtNum, fmtRate, gbUnit } from '../../lib/format';
-import { AreaChart, Donut, HBars, SegBar, colorAt } from '../../components/charts';
+import { cumulative, deltaPct, fmtBytes, fmtDay, fmtMs, fmtNum, fmtPct, fmtRate, fmtStamp, gbUnit, shiftDay } from '../../lib/format';
+import { AreaChart, BarChart, Donut, HBars, SegBar, colorAt } from '../../components/charts';
 import { Card, Empty, ErrorBox, Loading, Stat } from '../../components/ui';
 import type { PageProps } from './types';
 
@@ -11,7 +11,7 @@ const LEVEL_ICON: Record<string, string> = { crit: '⛔', warn: '⚠️', info: 
 export default function Overview({ days, nonce }: PageProps) {
   const { token, lang, tz } = useAddon();
   const t = useT();
-  const ov = useStat<any>(token, 'overview', { days }, { nonce });
+  const ov = useStat<any>(token, 'overview', { days, tz }, { nonce });
   const ins = useStat<any[]>(token, 'insights', { days, tz }, { nonce });
 
   if (ov.loading && !ov.data) return <Loading />;
@@ -25,6 +25,21 @@ export default function Overview({ days, nonce }: PageProps) {
   const vsPrev = deltaPct(tr.total, tr.previous?.bytes);
   const reqPrev = deltaPct(tr.requests, tr.previous?.requests);
   const roleName = (r: string) => t(`role.${r}`);
+  const fr = lang === 'fr';
+  const mo = fr ? 'Mo' : 'MB';
+  const go = gbUnit(lang);
+  const bucketLabels = [`<100 ${mo}`, `100 ${mo}–1 ${go}`, `1–10 ${go}`, `10–100 ${go}`, `≥100 ${go}`];
+  const consumption = bucketLabels.map((label, i) => ({ label, row: (d.consumption as any[]).find((c) => c.bucket === i) }));
+  const quotaLabels = ['<25 %', '25–50 %', '50–80 %', '80–100 %', '≥100 %'];
+  const quotaDist = quotaLabels.map((label, i) => ({ label, n: (d.quotaDist as any[]).find((c) => c.bucket === i)?.accounts ?? 0 }));
+  const dayTotals: number[] = d.daily.map((x: any) => x.sent + x.received);
+  const prevByDay = new Map<string, number>((d.prevDaily as any[]).map((x) => [x.day, x.bytes]));
+  const prevAligned: number[] = d.daily.map((x: any) => prevByDay.get(shiftDay(x.day, -days)) ?? 0);
+  const newByDay = new Map<string, number>((d.newAccounts as any[]).map((x) => [x.day, x.count]));
+  const perActive = tr.activeAccounts > 0 ? tr.total / tr.activeAccounts : 0;
+  const avgReq = tr.requests > 0 ? tr.total / tr.requests : 0;
+  const flow = d.flow ?? { gained: 0, kept: 0, lost: 0 };
+  const share = d.domainShare ?? { top1: 0, top5: 0, top15: 0 };
 
   return (
     <div className="space-y-4">
@@ -50,6 +65,9 @@ export default function Overview({ days, nonce }: PageProps) {
         <Stat label={t('overview.quota')} value={`${fmtNum(a.usedGb, lang, 1)} / ${a.quotaGb ? fmtNum(a.quotaGb, lang, 1) : '∞'} ${gbUnit(lang)}`} sub={t('overview.unlimited', { n: a.unlimited })} />
         <Stat label={t('overview.pool')} value={`${fmtNum(p.working, lang)} / ${fmtNum(p.total - p.archived, lang)}`} sub={`${t('overview.latency')} ${fmtMs(p.avgLatencyMs, lang)}`} tone={p.working === 0 ? 'bad' : undefined} />
         <Stat label={t('overview.categories')} value={fmtNum(d.categories, lang)} sub={`${d.panelUsers.reduce((n: number, u: any) => n + u.total, 0)} ${t('overview.panelUsers')}`} />
+        <Stat label={t('overview.perActive')} value={fmtBytes(perActive, lang)} sub={`${fmtNum(tr.activeAccounts ? tr.requests / tr.activeAccounts : 0, lang)} ${t('overview.reqPerActive')}`} />
+        <Stat label={t('overview.avgRequest')} value={fmtBytes(avgReq, lang)} sub={t('overview.avgRequestHint')} />
+        <Stat label={t('overview.busiestHour')} value={d.timeline.length ? fmtStamp(d.timeline.reduce((a: any, b: any) => (b.sent + b.received > a.sent + a.received ? b : a)).hour, lang) : '—'} sub={t('overview.last72')} />
       </div>
 
       <Card title={t('overview.dailyTraffic')}>
@@ -64,6 +82,46 @@ export default function Overview({ days, nonce }: PageProps) {
           xFmt={(x) => fmtDay(x, lang)}
         />
       </Card>
+
+      <div className="grid cols-2">
+        <Card title={t('overview.vsPrevious')}>
+          <AreaChart
+            labels={d.daily.map((x: any) => x.day)}
+            series={[
+              { name: t('overview.current'), color: 'var(--primary)', values: dayTotals },
+              { name: t('overview.previous'), color: '#64748b', values: prevAligned },
+            ]}
+            fmt={(n) => fmtBytes(n, lang)}
+            xFmt={(x) => fmtDay(x, lang)}
+            height={170}
+          />
+        </Card>
+        <Card title={t('overview.cumulative')}>
+          <AreaChart
+            labels={d.daily.map((x: any) => x.day)}
+            series={[{ name: t('overview.cumulative'), color: '#10b981', values: cumulative(dayTotals) }]}
+            fmt={(n) => fmtBytes(n, lang)}
+            xFmt={(x) => fmtDay(x, lang)}
+            height={170}
+          />
+        </Card>
+      </div>
+
+      {d.timeline.length > 1 && (
+        <Card title={t('overview.timeline72')}>
+          <AreaChart
+            labels={d.timeline.map((x: any) => x.hour)}
+            series={[
+              { name: t('sent'), color: '#3b82f6', values: d.timeline.map((x: any) => x.sent) },
+              { name: t('received'), color: 'var(--primary)', values: d.timeline.map((x: any) => x.received) },
+            ]}
+            stacked
+            fmt={(n) => fmtBytes(n, lang)}
+            xFmt={(x) => fmtStamp(x, lang)}
+            height={170}
+          />
+        </Card>
+      )}
 
       <div className="grid cols-2">
         <Card title={t('overview.dailyRequests')}>
@@ -92,6 +150,89 @@ export default function Overview({ days, nonce }: PageProps) {
           <div className="text-xs text-muted mt-3">
             {t('overview.nearQuota', { n: a.nearQuota })} · {t('overview.customList', { n: a.customList })} · {t('overview.assigned', { n: a.assigned })}
           </div>
+        </Card>
+      </div>
+
+      <div className="grid cols-3">
+        <Card title={t('overview.sentReceived')}>
+          <Donut
+            fmt={(n) => fmtBytes(n, lang)}
+            slices={[
+              { label: t('sent'), value: tr.sent, color: '#3b82f6' },
+              { label: t('received'), value: tr.received, color: 'var(--primary)' },
+            ]}
+            size={130}
+          />
+        </Card>
+        <Card title={t('overview.consumptionDist')}>
+          <BarChart
+            fmt={(n) => fmtNum(n, lang)}
+            data={consumption.map((c) => ({ label: c.label, value: c.row?.accounts ?? 0, tip: `${c.label} — ${fmtNum(c.row?.accounts ?? 0, lang)} ${t('overview.accounts')} · ${fmtBytes(c.row?.bytes ?? 0, lang)}` }))}
+            height={120}
+          />
+          <p className="text-xs text-muted mt-2">{t('overview.consumptionHint')}</p>
+        </Card>
+        <Card title={t('overview.quotaDist')}>
+          <BarChart
+            fmt={(n) => fmtNum(n, lang)}
+            data={quotaDist.map((c, i) => ({ label: c.label, value: c.n, color: i >= 4 ? 'var(--red)' : i === 3 ? '#f59e0b' : 'var(--green)' }))}
+            height={120}
+          />
+          <p className="text-xs text-muted mt-2">{t('overview.quotaHint')}</p>
+        </Card>
+      </div>
+
+      <div className="grid cols-2">
+        <Card title={t('overview.accountFlow')}>
+          <SegBar
+            fmt={(n) => fmtNum(n, lang)}
+            slices={[
+              { label: t('overview.gained'), value: flow.gained, color: 'var(--green)' },
+              { label: t('overview.kept'), value: flow.kept, color: '#3b82f6' },
+              { label: t('overview.lost'), value: flow.lost, color: 'var(--red)' },
+            ]}
+          />
+          <p className="text-xs text-muted mt-2">{t('overview.flowHint')}</p>
+          {d.newAccounts.length > 0 && (
+            <div className="mt-3">
+              <div className="stat-label">{t('overview.newAccounts')}</div>
+              <BarChart
+                fmt={(n) => fmtNum(n, lang)}
+                data={d.daily.map((x: any) => ({ label: fmtDay(x.day, lang), value: newByDay.get(x.day) ?? 0 }))}
+                labelEvery={Math.max(1, Math.ceil(d.daily.length / 8))}
+                height={70}
+                color="#8b5cf6"
+              />
+            </div>
+          )}
+        </Card>
+        <Card title={t('overview.domainShare')}>
+          <HBars
+            fmt={(n) => fmtPct(n * 100, lang, 1)}
+            rows={[
+              { label: t('overview.top1'), value: share.top1, color: colorAt(0) },
+              { label: t('overview.top5'), value: share.top5, color: colorAt(1) },
+              { label: t('overview.top15'), value: share.top15, color: colorAt(2) },
+            ]}
+          />
+          <p className="text-xs text-muted mt-2">{t('overview.domainShareHint')}</p>
+        </Card>
+      </div>
+
+      <div className="grid cols-2">
+        <Card title={t('overview.growers')}>
+          <HBars
+            fmt={(n) => `+${fmtBytes(n, lang)}`}
+            empty={t('overview.noMovers')}
+            rows={d.movers.growers.map((m: any) => ({ label: <span title={m.username}>{m.name || m.username}</span>, value: m.delta, sub: `${fmtBytes(m.prev, lang)} → ${fmtBytes(m.cur, lang)}`, color: 'var(--green)' }))}
+          />
+        </Card>
+        <Card title={t('overview.decliners')}>
+          <HBars
+            fmt={(n) => `−${fmtBytes(n, lang)}`}
+            empty={t('overview.noMovers')}
+            rows={d.movers.decliners.map((m: any) => ({ label: <span title={m.username}>{m.name || m.username}</span>, value: -m.delta, sub: `${fmtBytes(m.prev, lang)} → ${fmtBytes(m.cur, lang)}`, color: 'var(--red)' }))}
+          />
         </Card>
       </div>
 

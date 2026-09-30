@@ -60,6 +60,30 @@ export default function Checker({ days, nonce }: PageProps) {
       {runs.length > 0 ? (
         <>
           <div className="grid cols-2">
+            <Card title={t('checker.aliveDeadByCycle')}>
+              <AreaChart
+                labels={runs.map((r) => r.startedAt)}
+                series={[
+                  { name: t('pool.working'), color: 'var(--green)', values: runs.map((r) => r.ok) },
+                  { name: t('pool.dead'), color: 'var(--red)', values: runs.map((r) => r.failed) },
+                ]}
+                stacked
+                fmt={n}
+                xFmt={(x) => fmtDateTime(x, lang)}
+                height={150}
+              />
+            </Card>
+            <Card title={t('checker.durationTrend')}>
+              <AreaChart
+                labels={runs.map((r) => r.startedAt)}
+                series={[{ name: t('duration'), color: 'var(--blue)', values: runs.map((r) => r.durationMs) }]}
+                fmt={(v) => fmtDuration(v, lang)}
+                xFmt={(x) => fmtDateTime(x, lang)}
+                height={150}
+              />
+            </Card>
+          </div>
+          <div className="grid cols-2">
             <Card title={t('checker.aliveByCycle')}>
               <BarChart
                 fmt={(v) => fmtPct(v, lang, 1)}

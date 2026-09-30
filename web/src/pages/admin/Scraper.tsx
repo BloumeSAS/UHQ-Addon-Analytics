@@ -2,7 +2,7 @@ import { useAddon } from '../../context';
 import { useT } from '../../i18n';
 import { useStat } from '../../lib/api';
 import { fmtDateTime, fmtDuration, fmtMs, fmtNum, fmtPct, timeAgo } from '../../lib/format';
-import { BarChart, HBars, colorAt } from '../../components/charts';
+import { AreaChart, BarChart, Donut, HBars, colorAt } from '../../components/charts';
 import { Badge, Card, Empty, ErrorBox, Loading, Stat } from '../../components/ui';
 import type { PageProps } from './types';
 
@@ -60,6 +60,57 @@ export default function Scraper({ days, nonce }: PageProps) {
           ) : <Empty>{t('checker.noHistory')}</Empty>}
         </Card>
       </div>
+
+      <div className="grid cols-2">
+        <Card title={t('scraper.sourceHealth')}>
+          <Donut
+            fmt={n}
+            size={130}
+            slices={[
+              { label: t('scraper.healthy'), value: sources.filter((s) => s.enabled && s.failCount === 0).length, color: 'var(--green)' },
+              { label: t('scraper.failing'), value: failing, color: '#f59e0b' },
+              { label: t('scraper.disabled'), value: sources.filter((s) => !s.enabled).length, color: 'var(--red)' },
+            ]}
+          />
+        </Card>
+        <Card title={t('scraper.failingTop')}>
+          <HBars
+            fmt={n}
+            empty={t('scraper.noFailing')}
+            rows={sources.filter((s) => s.failCount > 0).sort((a, b) => b.failCount - a.failCount).slice(0, 10).map((s) => ({ label: s.name, value: s.failCount, sub: s.lastError ? String(s.lastError).slice(0, 40) : undefined, color: 'var(--red)', tip: s.lastError ?? '' }))}
+          />
+        </Card>
+      </div>
+
+      {runs.length > 1 && (
+        <div className="grid cols-2">
+          <Card title={t('scraper.cyclesFlow')}>
+            <AreaChart
+              labels={runs.map((r) => r.startedAt)}
+              series={[
+                { name: t('scraper.collected'), color: '#64748b', values: runs.map((r) => r.extra?.collected ?? 0) },
+                { name: t('scraper.unique'), color: 'var(--primary)', values: runs.map((r) => r.processed) },
+              ]}
+              fmt={n}
+              xFmt={(x) => fmtDateTime(x, lang)}
+              height={150}
+            />
+          </Card>
+          <Card title={t('scraper.sourcesOkFail')}>
+            <AreaChart
+              labels={runs.map((r) => r.startedAt)}
+              series={[
+                { name: '✓', color: 'var(--green)', values: runs.map((r) => r.ok) },
+                { name: '✗', color: 'var(--red)', values: runs.map((r) => r.failed) },
+              ]}
+              stacked
+              fmt={n}
+              xFmt={(x) => fmtDateTime(x, lang)}
+              height={150}
+            />
+          </Card>
+        </div>
+      )}
 
       <Card pad={false} title={t('scraper.sourcesTable')}>
         <div className="table-wrap">

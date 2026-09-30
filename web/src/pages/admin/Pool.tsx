@@ -120,6 +120,36 @@ export default function Pool({ nonce }: PageProps) {
       </Card>
 
       <div className="grid cols-2">
+        <Card title={t('pool.providerYield')}>
+          <HBars
+            fmt={(n) => fmtPct(n, lang, 1)}
+            rows={d.byProvider.filter((p: any) => p.total >= 10).map((p: any, i: number) => ({ label: p.provider, value: pctOf(p.working, p.total), sub: `${n(p.working)} / ${n(p.total)}`, color: colorAt(i) }))}
+          />
+        </Card>
+        <Card title={t('pool.providerLatency')}>
+          <HBars
+            fmt={(v) => fmtMs(v, lang)}
+            rows={d.byProvider.filter((p: any) => p.avgLatencyMs).map((p: any, i: number) => ({ label: p.provider, value: p.avgLatencyMs, color: colorAt(i + 1) }))}
+          />
+        </Card>
+        <Card title={t('pool.providerSuccess')}>
+          <HBars
+            fmt={(v) => fmtPct(v, lang, 1)}
+            rows={d.byProvider.filter((p: any) => p.successes + p.failures >= 20).map((p: any, i: number) => ({ label: p.provider, value: pctOf(p.successes, p.successes + p.failures), sub: `${n(p.successes + p.failures)} ${t('pool.tests')}`, color: colorAt(i + 2) }))}
+          />
+        </Card>
+        <Card title={t('pool.countryShare')}>
+          <Donut
+            fmt={n}
+            slices={[
+              ...d.byCountry.filter((c: any) => c.working > 0).slice(0, 7).map((c: any, i: number) => ({ label: c.country, value: c.working, color: colorAt(i) })),
+              { label: t('pool.others'), value: Math.max(0, d.byCountry.filter((c: any) => c.working > 0).slice(7).reduce((x: number, c: any) => x + c.working, 0)), color: '#64748b' },
+            ]}
+          />
+        </Card>
+      </div>
+
+      <div className="grid cols-2">
         <Card title={t('pool.byProtocol')}>
           <Donut fmt={n} slices={d.byProtocol.map((p: any, i: number) => ({ label: p.protocol.toUpperCase(), value: p.working, color: colorAt(i) }))} />
           <div className="table-wrap mt-3">

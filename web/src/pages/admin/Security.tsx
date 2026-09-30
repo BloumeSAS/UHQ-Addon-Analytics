@@ -2,7 +2,7 @@ import { useAddon } from '../../context';
 import { useT } from '../../i18n';
 import { useStat } from '../../lib/api';
 import { fmtDateTime, fmtDay, fmtNum } from '../../lib/format';
-import { AreaChart, HBars, colorAt } from '../../components/charts';
+import { AreaChart, Donut, HBars, colorAt } from '../../components/charts';
 import { Badge, Card, Empty, ErrorBox, Loading, Stat } from '../../components/ui';
 import type { PageProps } from './types';
 
@@ -26,6 +26,32 @@ export default function Security({ days, nonce }: PageProps) {
         <Stat label={t('security.apiKeys')} value={n(d.apiKeys.active)} sub={t('security.keysSub', { used: d.apiKeys.used30d, expired: d.apiKeys.expired })} />
         <Stat label={t('security.targetBlocks')} value={n(d.targetBlocks)} sub={t('security.targetBlocksHint')} />
         <Stat label={t('security.targetErrors')} value={n(d.errors.reduce((x: number, e: any) => x + e.count, 0))} sub={t('security.targetErrorsHint')} />
+      </div>
+
+      <div className="grid cols-3">
+        <Card title={t('security.bansKind')}>
+          <Donut
+            fmt={n}
+            size={120}
+            slices={[
+              { label: t('security.auto'), value: d.bans.auto, color: '#3b82f6' },
+              { label: t('security.manual'), value: Math.max(0, d.bans.total - d.bans.auto), color: 'var(--primary)' },
+            ]}
+          />
+        </Card>
+        <Card title={t('security.bansDuration')}>
+          <Donut
+            fmt={n}
+            size={120}
+            slices={[
+              { label: t('security.permanent'), value: d.bans.permanent, color: 'var(--red)' },
+              { label: t('security.temporary'), value: Math.max(0, d.bans.total - d.bans.permanent), color: '#f59e0b' },
+            ]}
+          />
+        </Card>
+        <Card title={t('security.errorsShare')}>
+          <Donut fmt={n} size={120} slices={d.errors.slice(0, 5).map((e: any, i: number) => ({ label: e.reason, value: e.count, color: colorAt(i + 3) }))} />
+        </Card>
       </div>
 
       <div className="grid cols-2">

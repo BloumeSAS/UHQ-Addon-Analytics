@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useAddon } from '../context';
 import { useT } from '../i18n';
-import { fmtBytes, fmtDay, fmtHour, fmtNum, fmtDate, weekdayName } from '../lib/format';
-import { AreaChart, BarChart, Heatmap, HBars } from './charts';
+import { fmtBytes, fmtDay, fmtHour, fmtNum, fmtDate, fmtStamp, weekdayName } from '../lib/format';
+import { AreaChart, BarChart, Donut, Heatmap, HBars } from './charts';
 import { Card, Notice, Stat, Tabs } from './ui';
 
 export interface ActivityData {
@@ -14,6 +14,9 @@ export interface ActivityData {
   weekday: { dow: number; bytes: number; requests: number; avgBytes: number; avgRequests: number }[];
   heatmap: { bytes: number[][]; requests: number[][] };
   byDay: { day: string; bytes: number; requests: number; accounts: number }[];
+  dayparts: Record<'night' | 'morning' | 'afternoon' | 'evening', { bytes: number; requests: number }>;
+  weekend: { weekday: number; weekend: number; weekdayDays: number; weekendDays: number };
+  timeline: { hour: string; sent: number; received: number; requests: number; accounts: number }[];
   peak: {
     hour: { hour: number; bytes: number; share: number } | null;
     weekday: { dow: number; avgBytes: number } | null;
@@ -136,6 +139,65 @@ export function ActivityView({ data, showAccounts = false }: { data: ActivityDat
         )}
         {data.hasHourly && total > 0 && <p className="text-xs text-muted mt-2">{t('activity.heatHint')}</p>}
       </Card>
+
+      {data.hasHourly && data.timeline.length > 1 && (
+        <Card title={t('activity.timeline')}>
+          <AreaChart
+            labels={data.timeline.map((x) => x.hour)}
+            series={
+              dayMetric === 'requests'
+                ? [{ name: t('metric.requests'), color: '#10b981', values: data.timeline.map((x) => x.requests) }]
+                : [
+                    { name: t('sent'), color: '#3b82f6', values: data.timeline.map((x) => x.sent) },
+                    { name: t('received'), color: 'var(--primary)', values: data.timeline.map((x) => x.received) },
+                  ]
+            }
+            stacked={dayMetric === 'bytes'}
+            fmt={(n) => (dayMetric === 'requests' ? fmtNum(n, lang) : fmtBytes(n, lang))}
+            xFmt={(x) => fmtStamp(x, lang)}
+            height={170}
+          />
+        </Card>
+      )}
+
+      {showAccounts && data.hasHourly && data.timeline.length > 1 && (
+        <Card title={t('activity.activeByHour')}>
+          <AreaChart
+            labels={data.timeline.map((x) => x.hour)}
+            series={[{ name: t('metric.accounts'), color: '#8b5cf6', values: data.timeline.map((x) => x.accounts) }]}
+            fmt={(n) => fmtNum(n, lang)}
+            xFmt={(x) => fmtStamp(x, lang)}
+            height={140}
+          />
+        </Card>
+      )}
+
+      {data.hasHourly && total > 0 && (
+        <div className="grid cols-2">
+          <Card title={t('activity.dayparts')}>
+            <Donut
+              fmt={(n) => (dayMetric === 'requests' ? fmtNum(n, lang) : fmtBytes(n, lang))}
+              size={130}
+              slices={(['night', 'morning', 'afternoon', 'evening'] as const).map((k, i) => ({
+                label: t(`activity.part.${k}`),
+                value: data.dayparts[k][dayMetric],
+                color: ['#64748b', '#f59e0b', 'var(--primary)', '#8b5cf6'][i],
+              }))}
+            />
+          </Card>
+          <Card title={t('activity.weekendVsWeek')}>
+            <BarChart
+              fmt={(n) => fmtBytes(n, lang)}
+              height={120}
+              data={[
+                { label: t('activity.weekdays'), value: data.weekend.weekdayDays ? data.weekend.weekday / data.weekend.weekdayDays : 0, color: 'var(--primary)' },
+                { label: t('activity.weekendDays'), value: data.weekend.weekendDays ? data.weekend.weekend / data.weekend.weekendDays : 0, color: '#8b5cf6' },
+              ]}
+            />
+            <p className="text-xs text-muted mt-2">{t('activity.avgPerDay')}</p>
+          </Card>
+        </div>
+      )}
 
       <Card title={t('activity.daily')}>
         <AreaChart

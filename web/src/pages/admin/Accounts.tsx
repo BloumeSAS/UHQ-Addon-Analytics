@@ -4,7 +4,7 @@ import { useT } from '../../i18n';
 import { createApi, useStat } from '../../lib/api';
 import { deltaPct, downloadCsv, fmtBytes, fmtDate, fmtDay, fmtHour, fmtNum, fmtPct, gbUnit, timeAgo } from '../../lib/format';
 import { ActivityView } from '../../components/ActivityView';
-import { AreaChart, Gauge, HBars } from '../../components/charts';
+import { AreaChart, BarChart, Donut, Gauge, HBars } from '../../components/charts';
 import { Badge, Card, Empty, ErrorBox, Loading, Pagination, SortTh, Stat, useDebounced } from '../../components/ui';
 import type { PageProps } from './types';
 
@@ -34,6 +34,7 @@ export default function Accounts({ days, nonce }: PageProps) {
   const params = { days, tz, q: dq || undefined, status: status || undefined, pool: pool || undefined, sort, order, limit: PAGE, offset };
   const res = useStat<any>(token, 'accounts', params, { raw: true, nonce });
   const cats = useStat<any>(token, 'categories', { days, tz }, { nonce });
+  const ov = useStat<any>(token, 'overview', { days, tz }, { nonce });
 
   const onSort = (id: string) => {
     if (sort === id) setOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
@@ -60,8 +61,48 @@ export default function Accounts({ days, nonce }: PageProps) {
 
   const rows: any[] = res.data?.data ?? [];
 
+  const o = ov.data;
+  const mo = lang === 'fr' ? 'Mo' : 'MB';
+  const go = gbUnit(lang);
+  const bucketLabels = [`<100 ${mo}`, `100 ${mo}–1 ${go}`, `1–10 ${go}`, `10–100 ${go}`, `≥100 ${go}`];
+
   return (
     <div className="space-y-4">
+      {o && (
+        <div className="grid cols-3">
+          <Card title={t('overview.accountStatus')}>
+            <Donut
+              fmt={(n) => fmtNum(n, lang)}
+              size={120}
+              slices={[
+                { label: t('status.ok'), value: Math.max(0, o.accounts.total - o.accounts.blocked - o.accounts.expired - o.accounts.overQuota), color: 'var(--green)' },
+                { label: t('status.blocked'), value: o.accounts.blocked, color: 'var(--red)' },
+                { label: t('status.expired'), value: o.accounts.expired, color: '#64748b' },
+                { label: t('status.overquota'), value: o.accounts.overQuota, color: '#f59e0b' },
+              ]}
+            />
+          </Card>
+          <Card title={t('overview.consumptionDist')}>
+            <BarChart
+              fmt={(n) => fmtNum(n, lang)}
+              height={110}
+              data={bucketLabels.map((label, i) => ({ label, value: (o.consumption as any[]).find((c) => c.bucket === i)?.accounts ?? 0 }))}
+            />
+          </Card>
+          <Card title={t('overview.quotaDist')}>
+            <BarChart
+              fmt={(n) => fmtNum(n, lang)}
+              height={110}
+              data={['<25 %', '25–50 %', '50–80 %', '80–100 %', '≥100 %'].map((label, i) => ({
+                label,
+                value: (o.quotaDist as any[]).find((c) => c.bucket === i)?.accounts ?? 0,
+                color: i >= 4 ? 'var(--red)' : i === 3 ? '#f59e0b' : 'var(--green)',
+              }))}
+            />
+          </Card>
+        </div>
+      )}
+
       <Card pad={false} title={t('accounts.title')} right={
         <div className="toolbar">
           <input className="input" style={{ width: 200 }} placeholder={t('accounts.search')} value={q} onChange={(e) => setQ(e.target.value)} />

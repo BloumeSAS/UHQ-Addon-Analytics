@@ -25,7 +25,7 @@ export function Stat({
       <div className="stat-sub">
         {delta !== undefined && delta !== null && (
           <span className={delta >= 0 ? 'text-green' : 'text-red'} style={{ fontWeight: 600, marginRight: 6 }}>
-            {delta >= 0 ? '▲' : '▼'} {Math.abs(delta)} %
+            {delta >= 0 ? '▲' : '▼'} {Math.abs(delta) > 999 ? '>999' : Math.abs(delta)} %
           </span>
         )}
         {sub}
