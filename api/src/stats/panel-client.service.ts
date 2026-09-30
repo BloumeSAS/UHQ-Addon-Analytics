@@ -1,4 +1,5 @@
 import { HttpException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { Request } from 'express';
 import { Lang, langOf, msg } from './lang';
 
@@ -18,10 +19,13 @@ export function decodeJwt(token: string): JwtPayload | null {
   }
 }
 
+/**
+ * Jeton lu UNIQUEMENT dans l'en-tête Authorization (jamais en query string :
+ * une URL finit dans les journaux, l'historique et les en-têtes Referer).
+ */
 export function extractToken(req: Request): string {
   const auth = req.headers['authorization'] ?? '';
-  if (auth.startsWith('Bearer ')) return auth.slice(7);
-  return (req.query['token'] as string) ?? '';
+  return auth.startsWith('Bearer ') ? auth.slice(7) : '';
 }
 
 /** Décode le JWT de la requête (sans en vérifier la signature : c'est le panel qui l'authentifie à chaque appel). */
@@ -65,15 +69,19 @@ export class PanelClient {
     path: string,
     token: string,
     query: Record<string, unknown> = {},
-    opts: { userKey?: string; fresh?: boolean; lang?: Lang } = {},
+    opts: { userKey?: string; fresh?: boolean; lang?: Lang } = {}, // userKey : conservé pour compat, plus utilisé
   ): Promise<T> {
-    const { userKey = '', fresh = false, lang = 'fr' } = opts;
+    const { fresh = false, lang = 'fr' } = opts;
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(query)) {
       if (v !== undefined && v !== null && String(v) !== '') qs.set(k, String(v));
     }
     const url = `${this.panelUrl}${path}${qs.toString() ? `?${qs}` : ''}`;
-    const key = `${userKey}|${lang}|${url}`;
+    // Clé de cache = empreinte du JETON COMPLET (et non l'identifiant qu'il contient) :
+    // l'addon ne vérifie pas la signature (c'est le panel qui authentifie chaque
+    // appel) — avec `sub` dans la clé, un jeton forgé portant l'identifiant d'un
+    // admin aurait reçu ses réponses en cache sans jamais passer par le panel.
+    const key = `${createHash('sha256').update(token).digest('hex')}|${lang}|${url}`;
     const now = Date.now();
 
     const hit = this.cache.get(key);

@@ -32,6 +32,9 @@ COPY --from=api-builder /build/api/node_modules ./api/node_modules
 COPY --from=web-builder /build/web/dist        ./web/dist
 COPY uhq-manifest.json ./
 
+# Processus non-root (l'addon n'écrit rien sur disque).
+USER node
+
 EXPOSE 3001
 
 ENV NODE_ENV=production \
